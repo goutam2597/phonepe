@@ -5,6 +5,7 @@ typedef ReturnHandler = void Function(Uri uri);
 
 /// Loads [checkoutUrl] and intercepts [returnUrl] (custom scheme or https).
 class CheckoutWebView extends StatefulWidget {
+  final String returnDeepLink;
   final String checkoutUrl;
   final String returnUrl; // e.g. myapp://payment-return
   final ReturnHandler onReturn;
@@ -14,6 +15,7 @@ class CheckoutWebView extends StatefulWidget {
     super.key,
     required this.checkoutUrl,
     required this.returnUrl,
+    required this.returnDeepLink,
     required this.onReturn,
     this.appBarTitle,
   });
@@ -40,9 +42,9 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
           onPageStarted: (_) => setState(() => _loading = true),
           onPageFinished: (_) => setState(() => _loading = false),
           onNavigationRequest: (req) {
-            final uri = Uri.tryParse(req.url);
-            if (uri != null && _isReturnUrl(uri)) {
-              Navigator.of(context).pop();
+            if (req.url.startsWith(widget.returnDeepLink)) {
+              widget.onReturn(Uri.parse(req.url)); // full URI (has status_id)
+              if (mounted) Navigator.of(context).pop();
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
