@@ -6,62 +6,49 @@ import 'package:http/http.dart' as http;
 import 'checkout_webview.dart';
 import 'phonepe_models.dart'; // <- brings in PhonePePaymentResult & PhonePeCheckoutException
 
-/// Environment switch for PhonePe
-enum PhonePeEnv { sandbox, live }
-
-extension _EnvX on PhonePeEnv {
-  String get base => this == PhonePeEnv.sandbox
-      ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/hermes';
-}
-
-/// INSECURE helper for PhonePe (keys in app). Use only for sandbox tests.
+/// ⚠️ INSECURE demo: keys in app (for sandbox tests only).
 class PhonePeCheckout {
+  static const String _base = 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+  static const String _merchantId = 'PGTESTPAYUAT86';
+  static const String _saltKey = '96434309-7796-489d-8924-ab56988a6076';
+  static const String _saltIndex = '1';
+
   /// Create payment → open WebView → verify status → return result.
   static Future<PhonePePaymentResult> startPayment({
     required BuildContext context,
-    required PhonePeEnv env,
-    required String merchantId,
-    required String saltKey,
-    required String saltIndex,
-    required int amountPaise, // ₹ * 100
-    required String returnDeepLink, // e.g. myapp://payment-return
+    required int amountPaise,
+    required String returnDeepLink,
     String? merchantUserId,
     String? merchantTransactionId,
     String? appBarTitle,
   }) async {
-    final base = env.base;
     final txnId =
         merchantTransactionId ?? 'TXN_${DateTime.now().millisecondsSinceEpoch}';
     final userId =
         merchantUserId ?? 'user_${DateTime.now().millisecondsSinceEpoch}';
 
-    // 1) Build payload for /pg/v1/pay
     final payload = {
-      'merchantId': merchantId,
+      'merchantId': _merchantId,
       'merchantTransactionId': txnId,
       'merchantUserId': userId,
       'amount': amountPaise,
       'redirectUrl': returnDeepLink,
-      'redirectMode': 'GET', // must be GET for deep link interception
-      'callbackUrl':
-          returnDeepLink, // sandbox ok; prod should be server webhook
+      'redirectMode': 'GET',
+      'callbackUrl': returnDeepLink,
       'paymentInstrument': {'type': 'PAY_PAGE'},
     };
 
-    final jsonPayload = jsonEncode(payload);
-    final base64Payload = base64.encode(utf8.encode(jsonPayload));
+    final base64Payload = base64.encode(utf8.encode(jsonEncode(payload)));
 
     String xVerifyForPay() {
       const path = '/pg/v1/pay';
-      final toSign = base64Payload + path + saltKey;
+      final toSign = base64Payload + path + _saltKey;
       final digest = sha256.convert(utf8.encode(toSign)).toString();
-      return '$digest###$saltIndex';
+      return '$digest###$_saltIndex';
     }
 
-    // 2) Create payment
     final payRes = await http.post(
-      Uri.parse('$base/pg/v1/pay'),
+      Uri.parse('$_base/pg/v1/pay'),
       headers: {
         'Content-Type': 'application/json',
         'X-VERIFY': xVerifyForPay(),
@@ -83,9 +70,8 @@ class PhonePeCheckout {
       throw PhonePeCheckoutException('Missing redirect URL in create response');
     }
 
-    // 3) Open WebView and intercept the deep link
     Uri? returned;
-    if (context.mounted) {
+    if(context.mounted){
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => CheckoutWebView(
@@ -98,20 +84,19 @@ class PhonePeCheckout {
       );
     }
 
-    // 4) Verify via Status API
     String xVerifyForStatus() {
-      final path = '/pg/v1/status/$merchantId/$txnId';
-      final toSign = path + saltKey;
+      final path = '/pg/v1/status/$_merchantId/$txnId';
+      final toSign = path + _saltKey;
       final digest = sha256.convert(utf8.encode(toSign)).toString();
-      return '$digest###$saltIndex';
+      return '$digest###$_saltIndex';
     }
 
     final statusRes = await http.get(
-      Uri.parse('$base/pg/v1/status/$merchantId/$txnId'),
+      Uri.parse('$_base/pg/v1/status/$_merchantId/$txnId'),
       headers: {
         'Content-Type': 'application/json',
         'X-VERIFY': xVerifyForStatus(),
-        'X-MERCHANT-ID': merchantId,
+        'X-MERCHANT-ID': _merchantId,
       },
     );
 

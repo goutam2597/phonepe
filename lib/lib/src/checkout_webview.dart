@@ -3,10 +3,10 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 typedef ReturnHandler = void Function(Uri uri);
 
-/// Minimal WebView that loads [checkoutUrl] and intercepts [returnUrl].
+/// Loads [checkoutUrl] and intercepts [returnUrl] (custom scheme or https).
 class CheckoutWebView extends StatefulWidget {
   final String checkoutUrl;
-  final String returnUrl;     // e.g. myapp://payment-return (recommended)
+  final String returnUrl;     // e.g. myapp://payment-return
   final ReturnHandler onReturn;
   final String? appBarTitle;
 
@@ -41,9 +41,12 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
           onPageFinished: (_) => setState(() => _loading = false),
           onNavigationRequest: (req) {
             final uri = Uri.tryParse(req.url);
+
+            // DEBUG (optional): print(req.url);
             if (uri != null && _isReturnUrl(uri)) {
+              // 🔒 Stop WebView from opening the deep link externally
               widget.onReturn(uri);
-              if (mounted) Navigator.of(context).pop();
+              if (mounted) Navigator.of(context).pop(); // close WebView
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
@@ -54,14 +57,19 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
   }
 
   bool _isReturnUrl(Uri u) {
-    final schemeHostMatch =
-        (u.scheme == _target.scheme) && (u.host == _target.host);
-    final httpsPathMatch = (u.scheme == 'https' &&
+    // 1) custom scheme exact scheme+host, e.g. myapp://payment-return
+    final customMatch = (u.scheme == _target.scheme) && (u.host == _target.host);
+
+    // 2) https fallback exact host+path, e.g. https://your.com/payment-return
+    final httpsMatch = (u.scheme == 'https' &&
         _target.scheme == 'https' &&
         u.host == _target.host &&
         u.path == _target.path);
-    final prefixMatch = u.toString().startsWith(widget.returnUrl);
-    return schemeHostMatch || httpsPathMatch || prefixMatch;
+
+    // 3) lenient prefix in case provider appends params/slashes
+    final prefix = u.toString().startsWith(widget.returnUrl);
+
+    return customMatch || httpsMatch || prefix;
   }
 
   @override
