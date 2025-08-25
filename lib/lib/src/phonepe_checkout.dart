@@ -95,7 +95,6 @@ class PhonePeCheckout {
           builder: (_) => CheckoutWebView(
             returnDeepLink: returnDeepLink,
             checkoutUrl: redirectUrl,
-            returnUrl: returnDeepLink,
             onReturn: (uri) => returned = uri,
             appBarTitle: appBarTitle ?? 'PhonePe Checkout',
           ),

@@ -7,14 +7,12 @@ typedef ReturnHandler = void Function(Uri uri);
 class CheckoutWebView extends StatefulWidget {
   final String returnDeepLink;
   final String checkoutUrl;
-  final String returnUrl; // e.g. myapp://payment-return
   final ValueChanged<Uri> onReturn;
   final String? appBarTitle;
 
   const CheckoutWebView({
     super.key,
     required this.checkoutUrl,
-    required this.returnUrl,
     required this.returnDeepLink,
     required this.onReturn,
     this.appBarTitle,
