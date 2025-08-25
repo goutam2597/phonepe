@@ -44,7 +44,7 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
             if (uri != null && _isReturnUrl(uri)) {
               widget.onReturn(uri);
               if (context.mounted) Navigator.of(context).pop();
-
+              return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
           },
