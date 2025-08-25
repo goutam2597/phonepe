@@ -43,7 +43,7 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
             final uri = Uri.tryParse(req.url);
             if (uri != null && _isReturnUrl(uri)) {
               widget.onReturn(uri);
-              if (mounted) Navigator.of(context).pop();
+              if (context.mounted) Navigator.of(context).pop();
 
             }
             return NavigationDecision.navigate;
