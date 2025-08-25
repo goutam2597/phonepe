@@ -42,7 +42,7 @@ class PhonePeCheckout {
       'merchantUserId': userId,
       'amount': amountPaise,
       'redirectUrl': returnDeepLink,
-      'redirectMode': 'GET', // required for deep-link interception
+      'redirectMode': 'POST', // required for deep-link interception
       'callbackUrl': returnDeepLink, // sandbox ok; use server webhook in prod
       'paymentInstrument': {'type': 'PAY_PAGE'},
     };
