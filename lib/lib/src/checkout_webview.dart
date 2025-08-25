@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phone_pe/lib/widgets/custom_app_bar.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 typedef ReturnHandler = void Function(Uri uri);
@@ -54,15 +55,21 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.appBarTitle ?? 'PhonePe Checkout')),
-      body: Stack(
+      body: Column(
         children: [
-          WebViewWidget(controller: _controller),
-          if (_loading)
-            const Align(
-              alignment: Alignment.topCenter,
-              child: LinearProgressIndicator(minHeight: 2),
+          CustomAppBar(title: widget.appBarTitle ?? 'PhonePe Checkout'),
+          Expanded(
+            child: Stack(
+              children: [
+                WebViewWidget(controller: _controller),
+                if (_loading)
+                  const Align(
+                    alignment: Alignment.topCenter,
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+              ],
             ),
+          ),
         ],
       ),
     );
