@@ -1,9 +1,9 @@
-/// Library export for PhonePe checkout Flutter wrapper.
+/// Library export for **INSECURE** PhonePe checkout (sandbox only).
 ///
 /// Exposes:
-/// - [PhonePeCheckout] for opening PhonePe hosted checkout URLs.
+/// - [PhonePeInsecureCheckout] for starting payments directly to PhonePe.
 /// - [PhonePePaymentResult] / [PhonePeCheckoutException] models.
-library;
+library phonepe_insecure_checkout_flutter;
 
 export 'lib/src/phonepe_checkout.dart';
 export 'lib/src/phonepe_models.dart';

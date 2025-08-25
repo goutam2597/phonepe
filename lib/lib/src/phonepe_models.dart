@@ -1,17 +1,17 @@
 /// Result of a PhonePe checkout flow.
 class PhonePePaymentResult {
-  /// Merchant-side reference for the transaction (e.g. order id).
-  final String referenceId;
+  /// Your chosen merchant transaction ID sent to PhonePe.
+  final String merchantTransactionId;
 
-  /// Final status mapped by your backend (e.g. `SUCCESS`, `PENDING`, `FAILED`).
+  /// Final status derived from the Status API, e.g. `SUCCESS`, `PENDING`, `FAILED`.
   final String status;
 
-  /// Any raw payload captured/returned by your backend.
+  /// Raw payloads captured (create + verify responses).
   final Map<String, dynamic> raw;
 
   /// Creates an immutable [PhonePePaymentResult].
   const PhonePePaymentResult({
-    required this.referenceId,
+    required this.merchantTransactionId,
     required this.status,
     required this.raw,
   });
@@ -25,7 +25,7 @@ class PhonePeCheckoutException implements Exception {
   /// Human-readable error message.
   final String message;
 
-  /// Optional root cause.
+  /// Optional cause.
   final Object? cause;
 
   /// Creates a [PhonePeCheckoutException].
