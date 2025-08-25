@@ -1,25 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-/// Minimal WebView that loads [checkoutUrl] and intercepts [returnDeepLink].
+typedef ReturnHandler = void Function(Uri uri);
+
+/// Minimal WebView that loads [checkoutUrl] and intercepts [returnUrl].
 class CheckoutWebView extends StatefulWidget {
-  /// Hosted checkout URL returned by PhonePe (from `/pg/v1/pay`).
   final String checkoutUrl;
-
-  /// Custom deep link you passed as `redirectUrl`, e.g. `myapp://payment-return`.
-  final String returnDeepLink;
-
-  /// Called when [returnDeepLink] is intercepted; sends the full [Uri].
-  final ValueChanged<Uri> onReturn;
-
-  /// Optional title for the AppBar.
+  final String returnUrl;     // e.g. myapp://payment-return (recommended)
+  final ReturnHandler onReturn;
   final String? appBarTitle;
 
-  /// Creates a [CheckoutWebView].
   const CheckoutWebView({
     super.key,
     required this.checkoutUrl,
-    required this.returnDeepLink,
+    required this.returnUrl,
     required this.onReturn,
     this.appBarTitle,
   });
@@ -30,11 +24,14 @@ class CheckoutWebView extends StatefulWidget {
 
 class _CheckoutWebViewState extends State<CheckoutWebView> {
   late final WebViewController _controller;
+  late final Uri _target;
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
+    _target = Uri.parse(widget.returnUrl);
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0x00000000))
@@ -43,8 +40,9 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
           onPageStarted: (_) => setState(() => _loading = true),
           onPageFinished: (_) => setState(() => _loading = false),
           onNavigationRequest: (req) {
-            if (req.url.startsWith(widget.returnDeepLink)) {
-              widget.onReturn(Uri.parse(req.url));
+            final uri = Uri.tryParse(req.url);
+            if (uri != null && _isReturnUrl(uri)) {
+              widget.onReturn(uri);
               if (mounted) Navigator.of(context).pop();
               return NavigationDecision.prevent;
             }
@@ -53,6 +51,17 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
         ),
       )
       ..loadRequest(Uri.parse(widget.checkoutUrl));
+  }
+
+  bool _isReturnUrl(Uri u) {
+    final schemeHostMatch =
+        (u.scheme == _target.scheme) && (u.host == _target.host);
+    final httpsPathMatch = (u.scheme == 'https' &&
+        _target.scheme == 'https' &&
+        u.host == _target.host &&
+        u.path == _target.path);
+    final prefixMatch = u.toString().startsWith(widget.returnUrl);
+    return schemeHostMatch || httpsPathMatch || prefixMatch;
   }
 
   @override

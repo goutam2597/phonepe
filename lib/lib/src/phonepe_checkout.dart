@@ -4,49 +4,48 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'checkout_webview.dart';
-import 'phonepe_models.dart';
+import 'phonepe_models.dart'; // <- brings in PhonePePaymentResult & PhonePeCheckoutException
 
-/// **INSECURE** PhonePe checkout helper for sandbox testing only.
-/// Embeds merchant secrets in the app; anyone can extract them.
-/// Do not use in production.
-///
-/// Flow:
-/// 1) Build payload for `/pg/v1/pay` and compute `X-VERIFY = SHA256(base64(payload) + "/pg/v1/pay" + SALT_KEY) + "###" + SALT_INDEX`.
-/// 2) POST to `https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay`.
-/// 3) Open `redirectInfo.url` in WebView; set `redirectMode: "GET"` and `redirectUrl` as your deep link.
-/// 4) After return, call Status API: `/pg/v1/status/{merchantId}/{merchantTransactionId}` with `X-VERIFY = SHA256("/pg/v1/status/{merchantId}/{merchantTransactionId}" + SALT_KEY) + "###" + SALT_INDEX`.
-class PhonePeInsecureCheckout {
-  /// Creates a payment, opens the hosted pay page, verifies status, and returns the result.
-  ///
-  /// - [merchantId] sandbox MID (e.g., `"PGTESTPAYUAT"`).
-  /// - [saltKey] sandbox salt key (e.g., `"099eb0cd-02cf-4e2a-8aca-3e6c6aff0399"`).
-  /// - [saltIndex] typically `"1"` for sandbox.
-  /// - [amountPaise] is amount in paise (e.g., `10000` = ₹100.00).
-  /// - [returnDeepLink] must match what you pass in `redirectUrl`.
-  /// - [merchantTransactionId] if omitted, a timestamp-based ID is generated.
+/// Environment switch for PhonePe
+enum PhonePeEnv { sandbox, live }
+
+extension _EnvX on PhonePeEnv {
+  String get base => this == PhonePeEnv.sandbox
+      ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
+      : 'https://api.phonepe.com/apis/hermes';
+}
+
+/// INSECURE helper for PhonePe (keys in app). Use only for sandbox tests.
+class PhonePeCheckout {
+  /// Create payment → open WebView → verify status → return result.
   static Future<PhonePePaymentResult> startPayment({
     required BuildContext context,
+    required PhonePeEnv env,
     required String merchantId,
     required String saltKey,
     required String saltIndex,
-    required int amountPaise,
-    required String returnDeepLink,
-    String base = 'https://api-preprod.phonepe.com/apis/pg-sandbox',
+    required int amountPaise, // ₹ * 100
+    required String returnDeepLink, // e.g. myapp://payment-return
+    String? merchantUserId,
     String? merchantTransactionId,
     String? appBarTitle,
   }) async {
-    // 1) Build payload
+    final base = env.base;
     final txnId =
         merchantTransactionId ?? 'TXN_${DateTime.now().millisecondsSinceEpoch}';
+    final userId =
+        merchantUserId ?? 'user_${DateTime.now().millisecondsSinceEpoch}';
 
+    // 1) Build payload for /pg/v1/pay
     final payload = {
       'merchantId': merchantId,
       'merchantTransactionId': txnId,
-      'merchantUserId': 'user_${DateTime.now().millisecondsSinceEpoch}',
-      'amount': amountPaise, // paise (₹ * 100)
-      'redirectUrl': returnDeepLink, // deep link back into app
-      'redirectMode': 'GET', // use GET for deep link interception
-      'callbackUrl': returnDeepLink, // sandbox ok; in prod use server webhook
+      'merchantUserId': userId,
+      'amount': amountPaise,
+      'redirectUrl': returnDeepLink,
+      'redirectMode': 'GET', // must be GET for deep link interception
+      'callbackUrl':
+          returnDeepLink, // sandbox ok; prod should be server webhook
       'paymentInstrument': {'type': 'PAY_PAGE'},
     };
 
@@ -60,13 +59,12 @@ class PhonePeInsecureCheckout {
       return '$digest###$saltIndex';
     }
 
-    // 2) Call /pg/v1/pay
+    // 2) Create payment
     final payRes = await http.post(
       Uri.parse('$base/pg/v1/pay'),
       headers: {
         'Content-Type': 'application/json',
         'X-VERIFY': xVerifyForPay(),
-        // 'X-MERCHANT-ID': merchantId, // optional
       },
       body: jsonEncode({'request': base64Payload}),
     );
@@ -85,14 +83,14 @@ class PhonePeInsecureCheckout {
       throw PhonePeCheckoutException('Missing redirect URL in create response');
     }
 
-    // 3) Open WebView and wait for deep-link return
+    // 3) Open WebView and intercept the deep link
     Uri? returned;
     if (context.mounted) {
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => CheckoutWebView(
             checkoutUrl: redirectUrl,
-            returnDeepLink: returnDeepLink,
+            returnUrl: returnDeepLink,
             onReturn: (uri) => returned = uri,
             appBarTitle: appBarTitle ?? 'PhonePe Checkout',
           ),
@@ -124,14 +122,12 @@ class PhonePeInsecureCheckout {
     }
 
     final statusBody = jsonDecode(statusRes.body) as Map<String, dynamic>;
-
-    // Map a simple final status
-    // Common patterns: code = PAYMENT_SUCCESS / PAYMENT_PENDING / PAYMENT_ERROR
     final code = (statusBody['code'] ?? '').toString().toUpperCase();
+
     String finalStatus = 'PENDING';
     if (code.contains('SUCCESS')) {
       finalStatus = 'SUCCESS';
-    } else if (code.contains('ERROR') || code.contains('FAILED')) {
+    } else if (code.contains('ERROR') || code.contains('FAIL')) {
       finalStatus = 'FAILED';
     }
 
