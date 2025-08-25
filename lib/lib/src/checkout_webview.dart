@@ -6,7 +6,7 @@ typedef ReturnHandler = void Function(Uri uri);
 /// Loads [checkoutUrl] and intercepts [returnUrl] (custom scheme or https).
 class CheckoutWebView extends StatefulWidget {
   final String checkoutUrl;
-  final String returnUrl;     // e.g. myapp://payment-return
+  final String returnUrl; // e.g. myapp://payment-return
   final ReturnHandler onReturn;
   final String? appBarTitle;
 
@@ -42,8 +42,7 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
           onNavigationRequest: (req) {
             final uri = Uri.tryParse(req.url);
             if (uri != null && _isReturnUrl(uri)) {
-              widget.onReturn(uri);
-              if (context.mounted) Navigator.of(context).pop();
+              Navigator.of(context).pop();
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
@@ -54,10 +53,14 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
   }
 
   bool _isReturnUrl(Uri u) {
-    final customMatch = (u.scheme == _target.scheme) && (u.host == _target.host);
-    final httpsMatch  = (u.scheme == 'https' && _target.scheme == 'https' &&
-        u.host == _target.host && u.path == _target.path);
-    final prefix      = u.toString().startsWith(widget.returnUrl);
+    final customMatch =
+        (u.scheme == _target.scheme) && (u.host == _target.host);
+    final httpsMatch =
+        (u.scheme == 'https' &&
+        _target.scheme == 'https' &&
+        u.host == _target.host &&
+        u.path == _target.path);
+    final prefix = u.toString().startsWith(widget.returnUrl);
     return customMatch || httpsMatch || prefix;
   }
 
