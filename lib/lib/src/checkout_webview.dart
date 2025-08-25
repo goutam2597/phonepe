@@ -8,7 +8,7 @@ class CheckoutWebView extends StatefulWidget {
   final String returnDeepLink;
   final String checkoutUrl;
   final String returnUrl; // e.g. myapp://payment-return
-  final ReturnHandler onReturn;
+  final ValueChanged<Uri> onReturn;
   final String? appBarTitle;
 
   const CheckoutWebView({
@@ -26,13 +26,12 @@ class CheckoutWebView extends StatefulWidget {
 
 class _CheckoutWebViewState extends State<CheckoutWebView> {
   late final WebViewController _controller;
-  late final Uri _target;
+
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _target = Uri.parse(widget.returnUrl);
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -52,18 +51,6 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
         ),
       )
       ..loadRequest(Uri.parse(widget.checkoutUrl));
-  }
-
-  bool _isReturnUrl(Uri u) {
-    final customMatch =
-        (u.scheme == _target.scheme) && (u.host == _target.host);
-    final httpsMatch =
-        (u.scheme == 'https' &&
-        _target.scheme == 'https' &&
-        u.host == _target.host &&
-        u.path == _target.path);
-    final prefix = u.toString().startsWith(widget.returnUrl);
-    return customMatch || httpsMatch || prefix;
   }
 
   @override
