@@ -88,14 +88,25 @@ class PhonePeCheckout {
     }
 
     // 3) Open WebView and intercept the deep link
-    Uri? returned;
-    if(context.mounted){
+
+    String interimStatus = 'pending';
+    if (context.mounted) {
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => CheckoutWebView(
             returnDeepLink: returnDeepLink,
             checkoutUrl: redirectUrl,
-            onReturn: (uri) => returned = uri,
+            onReturn: (uri) {
+              final statusId = uri.queryParameters['status_id'];
+              // 1=success, 2=pending, 3=failed
+              if (statusId == '1') {
+                interimStatus = 'success';
+              } else if (statusId == '3') {
+                interimStatus = 'failed';
+              } else {
+                interimStatus = 'pending';
+              }
+            },
             appBarTitle: appBarTitle ?? 'PhonePe Checkout',
           ),
         ),
@@ -136,7 +147,7 @@ class PhonePeCheckout {
     final statusBody = jsonDecode(statusRes.body) as Map<String, dynamic>;
     final code = (statusBody['code'] ?? '').toString().toUpperCase();
 
-    String finalStatus = 'PENDING';
+    String finalStatus = interimStatus;
     if (code.contains('SUCCESS')) {
       finalStatus = 'SUCCESS';
     } else if (code.contains('ERROR') || code.contains('FAIL')) {
@@ -150,7 +161,7 @@ class PhonePeCheckout {
         'flowId': config.flowId,
         'request': payload,
         'createResponse': payBody,
-        'returnUri': returned?.toString(),
+
         'statusResponse': statusBody,
       },
     );
