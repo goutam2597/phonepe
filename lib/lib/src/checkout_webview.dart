@@ -41,12 +41,9 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
           onPageFinished: (_) => setState(() => _loading = false),
           onNavigationRequest: (req) {
             final uri = Uri.tryParse(req.url);
-
-            // DEBUG (optional): print(req.url);
             if (uri != null && _isReturnUrl(uri)) {
-              // 🔒 Stop WebView from opening the deep link externally
               widget.onReturn(uri);
-              if (mounted) Navigator.of(context).pop(); // close WebView
+              if (mounted) Navigator.of(context).pop();
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
@@ -57,18 +54,10 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
   }
 
   bool _isReturnUrl(Uri u) {
-    // 1) custom scheme exact scheme+host, e.g. myapp://payment-return
     final customMatch = (u.scheme == _target.scheme) && (u.host == _target.host);
-
-    // 2) https fallback exact host+path, e.g. https://your.com/payment-return
-    final httpsMatch = (u.scheme == 'https' &&
-        _target.scheme == 'https' &&
-        u.host == _target.host &&
-        u.path == _target.path);
-
-    // 3) lenient prefix in case provider appends params/slashes
-    final prefix = u.toString().startsWith(widget.returnUrl);
-
+    final httpsMatch  = (u.scheme == 'https' && _target.scheme == 'https' &&
+        u.host == _target.host && u.path == _target.path);
+    final prefix      = u.toString().startsWith(widget.returnUrl);
     return customMatch || httpsMatch || prefix;
   }
 

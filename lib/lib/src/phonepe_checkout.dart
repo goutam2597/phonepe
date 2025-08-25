@@ -2,59 +2,76 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:phone_pe/lib/src/phonepe_env.dart';
 
 import 'checkout_webview.dart';
-import 'phonepe_models.dart'; // <- brings in PhonePePaymentResult & PhonePeCheckoutException
+import 'phonepe_config.dart';
+import 'phonepe_models.dart';
 
-/// ⚠️ INSECURE demo: keys in app (for sandbox tests only).
+/// INSECURE on-device signing. Good for sandbox tests only.
+/// In production, move signing to your backend.
 class PhonePeCheckout {
-  static const String _base = 'https://api-preprod.phonepe.com/apis/pg-sandbox';
-  static const String _merchantId = 'PGTESTPAYUAT86';
-  static const String _saltKey = '96434309-7796-489d-8924-ab56988a6076';
-  static const String _saltIndex = '1';
-
   /// Create payment → open WebView → verify status → return result.
   static Future<PhonePePaymentResult> startPayment({
     required BuildContext context,
-    required int amountPaise,
-    required String returnDeepLink,
+    required PhonePeConfig config,
+    required int amountPaise, // ₹ * 100
+    required String returnDeepLink, // e.g. myapp://payment-return
     String? merchantUserId,
     String? merchantTransactionId,
     String? appBarTitle,
   }) async {
+    final base = config.environment.baseUrl;
+
     final txnId =
         merchantTransactionId ?? 'TXN_${DateTime.now().millisecondsSinceEpoch}';
     final userId =
         merchantUserId ?? 'user_${DateTime.now().millisecondsSinceEpoch}';
 
+    if (config.enableLogs) {
+      // ignore: avoid_print
+      print(
+        '[PhonePe] Env=${config.environment.label} Amount=$amountPaise Txn=$txnId',
+      );
+    }
+
+    // 1) Build payload for /pg/v1/pay
     final payload = {
-      'merchantId': _merchantId,
+      'merchantId': config.merchantId,
       'merchantTransactionId': txnId,
       'merchantUserId': userId,
       'amount': amountPaise,
       'redirectUrl': returnDeepLink,
-      'redirectMode': 'GET',
-      'callbackUrl': returnDeepLink,
+      'redirectMode': 'GET', // required for deep-link interception
+      'callbackUrl': returnDeepLink, // sandbox ok; use server webhook in prod
       'paymentInstrument': {'type': 'PAY_PAGE'},
     };
 
-    final base64Payload = base64.encode(utf8.encode(jsonEncode(payload)));
+    final jsonPayload = jsonEncode(payload);
+    final base64Payload = base64.encode(utf8.encode(jsonPayload));
 
     String xVerifyForPay() {
       const path = '/pg/v1/pay';
-      final toSign = base64Payload + path + _saltKey;
+      final toSign = base64Payload + path + config.saltKey;
       final digest = sha256.convert(utf8.encode(toSign)).toString();
-      return '$digest###$_saltIndex';
+      return '$digest###${config.saltIndex}';
     }
 
+    // 2) Create payment
     final payRes = await http.post(
-      Uri.parse('$_base/pg/v1/pay'),
+      Uri.parse('$base/pg/v1/pay'),
       headers: {
         'Content-Type': 'application/json',
         'X-VERIFY': xVerifyForPay(),
+        if (config.headers.isNotEmpty) ...config.headers,
       },
       body: jsonEncode({'request': base64Payload}),
     );
+
+    if (config.enableLogs) {
+      // ignore: avoid_print
+      print('[PhonePe] /pay status=${payRes.statusCode} body=${payRes.body}');
+    }
 
     if (payRes.statusCode != 200 && payRes.statusCode != 201) {
       throw PhonePeCheckoutException(
@@ -70,6 +87,7 @@ class PhonePeCheckout {
       throw PhonePeCheckoutException('Missing redirect URL in create response');
     }
 
+    // 3) Open WebView and intercept the deep link
     Uri? returned;
     if(context.mounted){
       await Navigator.of(context).push(
@@ -84,21 +102,30 @@ class PhonePeCheckout {
       );
     }
 
+    // 4) Verify via Status API
     String xVerifyForStatus() {
-      final path = '/pg/v1/status/$_merchantId/$txnId';
-      final toSign = path + _saltKey;
+      final path = '/pg/v1/status/${config.merchantId}/$txnId';
+      final toSign = path + config.saltKey;
       final digest = sha256.convert(utf8.encode(toSign)).toString();
-      return '$digest###$_saltIndex';
+      return '$digest###${config.saltIndex}';
     }
 
     final statusRes = await http.get(
-      Uri.parse('$_base/pg/v1/status/$_merchantId/$txnId'),
+      Uri.parse('$base/pg/v1/status/${config.merchantId}/$txnId'),
       headers: {
         'Content-Type': 'application/json',
         'X-VERIFY': xVerifyForStatus(),
-        'X-MERCHANT-ID': _merchantId,
+        'X-MERCHANT-ID': config.merchantId,
+        if (config.headers.isNotEmpty) ...config.headers,
       },
     );
+
+    if (config.enableLogs) {
+      // ignore: avoid_print
+      print(
+        '[PhonePe] /status code=${statusRes.statusCode} body=${statusRes.body}',
+      );
+    }
 
     if (statusRes.statusCode != 200) {
       throw PhonePeCheckoutException(
@@ -120,6 +147,7 @@ class PhonePeCheckout {
       merchantTransactionId: txnId,
       status: finalStatus,
       raw: {
+        'flowId': config.flowId,
         'request': payload,
         'createResponse': payBody,
         'returnUri': returned?.toString(),
