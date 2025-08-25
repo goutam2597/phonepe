@@ -53,7 +53,7 @@ class PhonePeInsecureCheckout {
     final jsonPayload = jsonEncode(payload);
     final base64Payload = base64.encode(utf8.encode(jsonPayload));
 
-    String _xVerifyForPay() {
+    String xVerifyForPay() {
       const path = '/pg/v1/pay';
       final toSign = base64Payload + path + saltKey;
       final digest = sha256.convert(utf8.encode(toSign)).toString();
@@ -65,7 +65,7 @@ class PhonePeInsecureCheckout {
       Uri.parse('$base/pg/v1/pay'),
       headers: {
         'Content-Type': 'application/json',
-        'X-VERIFY': _xVerifyForPay(),
+        'X-VERIFY': xVerifyForPay(),
         // 'X-MERCHANT-ID': merchantId, // optional
       },
       body: jsonEncode({'request': base64Payload}),
@@ -87,19 +87,21 @@ class PhonePeInsecureCheckout {
 
     // 3) Open WebView and wait for deep-link return
     Uri? returned;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CheckoutWebView(
-          checkoutUrl: redirectUrl,
-          returnDeepLink: returnDeepLink,
-          onReturn: (uri) => returned = uri,
-          appBarTitle: appBarTitle ?? 'PhonePe Checkout',
+    if (context.mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => CheckoutWebView(
+            checkoutUrl: redirectUrl,
+            returnDeepLink: returnDeepLink,
+            onReturn: (uri) => returned = uri,
+            appBarTitle: appBarTitle ?? 'PhonePe Checkout',
+          ),
         ),
-      ),
-    );
+      );
+    }
 
     // 4) Verify via Status API
-    String _xVerifyForStatus() {
+    String xVerifyForStatus() {
       final path = '/pg/v1/status/$merchantId/$txnId';
       final toSign = path + saltKey;
       final digest = sha256.convert(utf8.encode(toSign)).toString();
@@ -110,7 +112,7 @@ class PhonePeInsecureCheckout {
       Uri.parse('$base/pg/v1/status/$merchantId/$txnId'),
       headers: {
         'Content-Type': 'application/json',
-        'X-VERIFY': _xVerifyForStatus(),
+        'X-VERIFY': xVerifyForStatus(),
         'X-MERCHANT-ID': merchantId,
       },
     );
@@ -127,10 +129,11 @@ class PhonePeInsecureCheckout {
     // Common patterns: code = PAYMENT_SUCCESS / PAYMENT_PENDING / PAYMENT_ERROR
     final code = (statusBody['code'] ?? '').toString().toUpperCase();
     String finalStatus = 'PENDING';
-    if (code.contains('SUCCESS'))
+    if (code.contains('SUCCESS')) {
       finalStatus = 'SUCCESS';
-    else if (code.contains('ERROR') || code.contains('FAILED'))
+    } else if (code.contains('ERROR') || code.contains('FAILED')) {
       finalStatus = 'FAILED';
+    }
 
     return PhonePePaymentResult(
       merchantTransactionId: txnId,
