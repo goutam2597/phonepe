@@ -2,7 +2,7 @@ name: phonepe_flutter
 description: >
   Flutter helper to launch a PhonePe checkout flow, return via deep link,
   and expose a simple status for in-app payments with sandbox/production configs.
-version: 1.0.0
+version: 1.1.0
 
 repository: https://github.com/goutam2597/phonepe.git
 issue_tracker: https://github.com/goutam2597/phonepe/issues

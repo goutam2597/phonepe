@@ -79,9 +79,8 @@ class PhonePeCheckout {
     }
 
     final payBody = jsonDecode(payRes.body) as Map<String, dynamic>;
-    final redirectUrl =
-        payBody['data']?['instrumentResponse']?['redirectInfo']?['url']
-            as String?;
+    final redirectUrl = payBody['data']?['instrumentResponse']?['redirectInfo']
+        ?['url'] as String?;
     if (redirectUrl == null) {
       throw PhonePeCheckoutException('Missing redirect URL in create response');
     }
@@ -160,7 +159,6 @@ class PhonePeCheckout {
         'flowId': config.flowId,
         'request': payload,
         'createResponse': payBody,
-
         'statusResponse': statusBody,
       },
     );

@@ -22,11 +22,10 @@ extension PhonePeEnvironmentX on PhonePeEnvironment {
   /// - Sandbox → `https://api-preprod.phonepe.com/apis/pg-sandbox`
   /// - Production → `https://api.phonepe.com/apis/hermes`
   String get baseUrl => switch (this) {
-    PhonePeEnvironment.sandbox =>
-    'https://api-preprod.phonepe.com/apis/pg-sandbox',
-    PhonePeEnvironment.production =>
-    'https://api.phonepe.com/apis/hermes',
-  };
+        PhonePeEnvironment.sandbox =>
+          'https://api-preprod.phonepe.com/apis/pg-sandbox',
+        PhonePeEnvironment.production => 'https://api.phonepe.com/apis/hermes',
+      };
 
   /// A human-friendly label for the environment.
   ///
