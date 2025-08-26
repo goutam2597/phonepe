@@ -1,39 +1,78 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# PhonePe Checkout (Flutter)
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+A minimal Flutter helper demo for taking payments with **PhonePe** using a WebView/deep-link style flow (`phone_pe` package).  
+The example shows how to start a checkout, configure sandbox vs. production, and handle the resulting status.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+> This package/example is not an official PhonePe SDK. Use **sandbox credentials** for development and never ship your **secret keys** in the client. For production, do signing/verification on your **backend** and use PhonePe webhooks.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+---
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+- Start a PhonePe checkout from Flutter
+- Sandbox and production configuration examples
+- Return to app using a **deep link** (e.g., `myapp://payment-return`)
+- Simple status handling with snackbars and UI state
+
+---
 
 ## Getting started
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+### Installation
 
-## Usage
+Add the dependency in your app `pubspec.yaml`:
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
+```yaml
+dependencies:
+  phone_pe: ^1.0.0
 ```
 
-## Additional information
+Then run:
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+```bash
+flutter pub get
+```
+
+> If you're developing the `phone_pe` package itself, the example app depends on it via a local `path: ../` in `example/pubspec.yaml` (see below).
+
+---
+
+## Deep links
+
+Register your deep link on Android and iOS so `myapp://payment-return` opens your app.
+
+- **Android:** add an intent filter in the main activity for your scheme/host.
+- **iOS:** configure URL Types in `Info.plist` with the same scheme.
+
+In this demo flow, the in-app WebView intercepts navigation to the `returnDeepLink` and the example handles the result in Dart.
+
+---
+
+## Example usage
+
+```dart
+final result = await PhonePeCheckout.startPayment(
+  context: context,
+  config: sandboxConfig,
+  amountPaise: 10000, // ₹100.00 (paise)
+  returnDeepLink: 'myapp://payment-return',
+);
+
+// result.status: "SUCCESS" | "PENDING" | "FAILED" | provider-specific
+```
+
+See the full example in [`example/lib/main.dart`](example/lib/main.dart).
+
+---
+
+## Security notes
+
+- Do not embed production secrets in the app. Sign/verify requests on your **server**.
+- For live traffic, confirm transactions via PhonePe webhooks / server-side verification.
+- Keep `enableLogs` off in release builds.
+
+---
+
+## License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE).

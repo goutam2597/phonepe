@@ -1,13 +1,31 @@
 import 'package:flutter/material.dart';
 
+/// A reusable custom-styled [AppBar] widget with rounded bottom corners,
+/// a centered title, and a left-aligned back button.
+///
+/// The back button pops the current [Navigator] route when tapped.
+///
+/// Example:
+/// ```dart
+/// return Scaffold(
+///   appBar: const CustomAppBar(title: 'Checkout'),
+///   body: ...,
+/// );
+/// ```
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
-  final String title;
-
+  /// Creates a [CustomAppBar] with the given [title].
   const CustomAppBar({super.key, required this.title});
+
+  /// The text displayed as the title in the center of the app bar.
+  final String title;
 
   @override
   State<CustomAppBar> createState() => _CustomAppBarState();
 
+  /// The preferred size for this app bar.
+  ///
+  /// Required for implementing [PreferredSizeWidget] so it can be used in
+  /// [Scaffold.appBar].
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
@@ -32,6 +50,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
         automaticallyImplyLeading: false,
         centerTitle: true,
         elevation: 1,
+        // Use a transparent background so the [Container] draws the style.
         forceMaterialTransparency: true,
         foregroundColor: Colors.transparent,
         title: Stack(
