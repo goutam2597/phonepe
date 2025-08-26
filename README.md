@@ -24,7 +24,7 @@ Add the dependency in your app `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  phone_pe: ^1.0.0
+  phonepe_flutter: ^1.0.0
 ```
 
 Then run:

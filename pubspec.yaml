@@ -1,4 +1,4 @@
-name: phone_pe
+name: phonepe_flutter
 description: >
   Flutter helper to launch a PhonePe checkout flow, return via deep link,
   and expose a simple status for in-app payments with sandbox/production configs.
