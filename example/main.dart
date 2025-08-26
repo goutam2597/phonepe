@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phone_pe/phone_pe.dart';
+import 'package:phonepe_flutter/phone_pe.dart';
 
 /// Deep link you’ll intercept inside the WebView + register on iOS/Android.
 const kReturnDeepLink = 'myapp://payment-return';

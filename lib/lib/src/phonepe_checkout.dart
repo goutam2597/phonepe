@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:phone_pe/lib/src/phonepe_env.dart';
+import 'package:phonepe_flutter/lib/src/phonepe_env.dart';
 
 import 'checkout_webview.dart';
 import 'phonepe_config.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phone_pe/lib/widgets/custom_app_bar.dart';
+import 'package:phonepe_flutter/lib/widgets/custom_app_bar.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Callback signature used when the WebView navigates to the return deep link.
